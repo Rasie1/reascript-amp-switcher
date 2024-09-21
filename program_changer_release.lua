@@ -1,3 +1,4 @@
+require "set_program"
 
 -- reaper.StuffMIDIMessage(0, 0xC1 + string.format("%x", 0), 0, 0)
 
@@ -19,32 +20,30 @@ local keyDownTime = reaper.GetExtState("ProgramChanger", "KeyDownTime")
 local keyUpTime = reaper.time_precise()
 local newPreset = 0
 if keyUpTime - keyDownTime > 1 then
-    newPreset = (currentPreset + 1) % presetsNumber
-    if (newPreset == otherPreset) then
-        newPreset = (newPreset + 1) % presetsNumber
-    end
-    -- reaper.StuffMIDIMessage(0, 0xC0 + string.format("%x", 0), newPreset, 1)
-    -- reaper.StuffMIDIMessage(0, 0xC0 + string.format("%x", 0), otherPreset, 1)
-else
     newPreset = currentPreset
     if newPreset == otherPreset then
         newPreset = (otherPreset + 1) % presetsNumber
     end
-
     reaper.SetExtState("ProgramChanger", "OtherPreset", newPreset, true)
     newPreset = otherPreset
+    reaper.SetExtState("ProgramChanger", "Preset", newPreset, true)
+
+
+    newPreset = (currentPreset + 1) % presetsNumber
+    if (newPreset == otherPreset) then
+        newPreset = (newPreset + 1) % presetsNumber
+    end
+    setProgram(newPreset)
+else
+    newPreset = currentPreset
+    -- if newPreset == otherPreset then
+    --     newPreset = (otherPreset + 1) % presetsNumber
+    -- end
+    -- reaper.SetExtState("ProgramChanger", "OtherPreset", newPreset, true)
+    -- newPreset = otherPreset
 end
 
 reaper.SetExtState("ProgramChanger", "Preset", newPreset, true)
-
--- local track = reaper.GetTrack(0, 1)
--- if newPreset == 0 then
---     reaper.SetTrackColor(track, 190)
--- elseif newPreset == 1 then
---     reaper.SetTrackColor(track, 13121335)
--- elseif newPreset == 2 then
---     reaper.SetTrackColor(track, 7935340)
--- end
 
 -- pc channel 4
 -- reaper.StuffMIDIMessage(0, 0xC4, newPreset, 0)

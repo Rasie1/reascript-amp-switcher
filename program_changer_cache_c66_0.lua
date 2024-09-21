@@ -1,0 +1,1 @@
+reaper.SetExtState("MidiCache", "c66", 0, true)

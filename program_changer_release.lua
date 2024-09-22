@@ -1,53 +1,46 @@
 require "set_program"
 
--- reaper.StuffMIDIMessage(0, 0xC1 + string.format("%x", 0), 0, 0)
-
-local presetString = reaper.GetExtState("ProgramChanger", "Preset")
-local currentPreset = tonumber(presetString)
-if currentPreset == nil then
-    currentPreset = 0
+function getPresetIds()
+    local track = 0
+    local otherTrack = 0
+    trackL = reaper.GetTrack(0, 2)
+    trackR = reaper.GetTrack(0, 3)
+    a, state = reaper.GetTrackState(trackL)
+    if state & 8 == 8 then
+        track = trackL
+        otherTrack = trackR
+    else
+        track = trackR
+        otherTrack = trackL
+    end
+    a, trackName = reaper.GetTrackName(track)
+    a, otherTrackName = reaper.GetTrackName(otherTrack)
+    return string.byte(trackName, 1) - 48, string.byte(otherTrackName, 1) - 48
 end
 
-local otherPresetString = reaper.GetExtState("ProgramChanger", "OtherPreset")
-local otherPreset = tonumber(otherPresetString)
-if otherPreset == nil then
-    otherPreset = 1
-end
+currentPreset, otherPreset = getPresetIds()
 
 local presetsNumber = 6
 
 local keyDownTime = reaper.GetExtState("ProgramChanger", "KeyDownTime")
 local keyUpTime = reaper.time_precise()
-local newPreset = 0
 if keyUpTime - keyDownTime > 1 then
-    newPreset = currentPreset
-    if newPreset == otherPreset then
-        newPreset = (otherPreset + 1) % presetsNumber
-    end
-    reaper.SetExtState("ProgramChanger", "OtherPreset", newPreset, true)
-    newPreset = otherPreset
-    reaper.SetExtState("ProgramChanger", "Preset", newPreset, true)
+    -- reaper.ShowMessageBox(currentPreset, "DEBUG", 0)
+    -- maybe i don't have to record? then move the midi message back out
+    -- setProgram(currentPreset, true)
 
-
-    newPreset = (currentPreset + 1) % presetsNumber
+    local newPreset = (currentPreset + 1) % presetsNumber
     if (newPreset == otherPreset) then
         newPreset = (newPreset + 1) % presetsNumber
     end
-    setProgram(newPreset)
-else
-    newPreset = currentPreset
-    -- if newPreset == otherPreset then
-    --     newPreset = (otherPreset + 1) % presetsNumber
-    -- end
-    -- reaper.SetExtState("ProgramChanger", "OtherPreset", newPreset, true)
-    -- newPreset = otherPreset
+    -- skip 0 because it's a workaround for reset after playback
+    if newPreset == 0 then
+        if otherPreset == 1 then
+            newPreset = 2
+        else
+            newPreset = 1
+        end
+    end
+    -- reaper.ShowMessageBox(newPreset, "DEBUG", 0)
+    setProgram(newPreset, true)
 end
-
-reaper.SetExtState("ProgramChanger", "Preset", newPreset, true)
-
--- pc channel 4
--- reaper.StuffMIDIMessage(0, 0xC4, newPreset, 0)
--- cc channel 5 - this will be sent as a control message to be caught by another script so that it's recorded
-reaper.StuffMIDIMessage(0, 0xB4, 49, newPreset)
--- cc channel 5
--- reaper.StuffMIDIMessage(0, 0xB5, 50 + newPreset, 127)

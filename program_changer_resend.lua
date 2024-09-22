@@ -1,13 +1,22 @@
 local startTime = reaper.time_precise()
 local delay = 0.2
 
+function getPresetId()
+    local track = 0
+    trackL = reaper.GetTrack(0, 2)
+    trackR = reaper.GetTrack(0, 3)
+    a, state = reaper.GetTrackState(trackL)
+    if state & 8 == 8 then
+        track = trackL
+    else
+        track = trackR
+    end
+    a, trackName = reaper.GetTrackName(track)
+    return string.byte(trackName, 1) - 48
+end
 
 function nextFunction()
-    local presetString = reaper.GetExtState("ProgramChanger", "Preset")
-    local currentPreset = tonumber(presetString)
-    if currentPreset == nil then
-        currentPreset = 0
-    end
+    local currentPreset = getPresetId()
                                 --4 is channel
                                 --c is PC
                                 --0 is value

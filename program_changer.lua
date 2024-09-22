@@ -6,20 +6,26 @@ require "set_program"
 -- reaper.StuffMIDIMessage(0, 0xC0 + string.format("%x", midiChannel), cc, ccValue)
 reaper.SetExtState("ProgramChanger", "KeyDownTime", reaper.time_precise(), true)
 
-
--- get current and other preset
-
-local presetString = reaper.GetExtState("ProgramChanger", "Preset")
-local currentPreset = tonumber(presetString)
-if currentPreset == nil then
-    currentPreset = 1
+function getPresetIds()
+    local track = 0
+    local otherTrack = 0
+    trackL = reaper.GetTrack(0, 2)
+    trackR = reaper.GetTrack(0, 3)
+    a, state = reaper.GetTrackState(trackL)
+    if state & 8 == 8 then
+        track = trackL
+        otherTrack = trackR
+    else
+        track = trackR
+        otherTrack = trackL
+    end
+    a, trackName = reaper.GetTrackName(track)
+    a, otherTrackName = reaper.GetTrackName(otherTrack)
+    return string.byte(trackName, 1) - 48, string.byte(otherTrackName, 1) - 48
 end
 
-local otherPresetString = reaper.GetExtState("ProgramChanger", "OtherPreset")
-local otherPreset = tonumber(otherPresetString)
-if otherPreset == nil then
-    otherPreset = 2
-end
+local currentPreset, otherPreset = getPresetIds()
+-- reaper.ShowMessageBox(currentPreset, "DEBUG", 0)
 
 -- swap them
 
@@ -36,7 +42,6 @@ if newPreset == 0 then
     else
         newPreset = 1
     end
-    reaper.ShowMessageBox(0, "DEBUG", 0)
 end
 if otherPreset == 0 then
     if newPreset == 1 then
@@ -44,13 +49,9 @@ if otherPreset == 0 then
     else
         otherPreset = 1
     end
-    reaper.ShowMessageBox(1, "DEBUG", 0)
 end
 
 -- reaper.ShowMessageBox(newPreset, "DEBUG", 0)
+reaper.SetExtState("ProgramChanger", "Live", 1, false)
+setProgram(newPreset, true)
 
-reaper.SetExtState("ProgramChanger", "OtherPreset", newPreset, true)
-newPreset = otherPreset
-reaper.SetExtState("ProgramChanger", "Preset", newPreset, true)
-
-setProgram(newPreset)

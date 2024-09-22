@@ -1,8 +1,18 @@
-local presetString = reaper.GetExtState("ProgramChanger", "Preset")
-local currentPreset = tonumber(presetString)
-if currentPreset == nil then
-    currentPreset = 0
+function getPresetId()
+    local track = 0
+    trackL = reaper.GetTrack(0, 2)
+    trackR = reaper.GetTrack(0, 3)
+    a, state = reaper.GetTrackState(trackL)
+    if state & 8 == 8 then
+        track = trackL
+    else
+        track = trackR
+    end
+    a, trackName = reaper.GetTrackName(track)
+    return string.byte(trackName, 1) - 48
 end
+
+local currentPreset = getPresetId()
 is_new_value,filename,sectionID,cmdID,mode,resolution,value,contextstr = reaper.get_action_context()
 local newVelocity = 0
 if (currentPreset == 0) then

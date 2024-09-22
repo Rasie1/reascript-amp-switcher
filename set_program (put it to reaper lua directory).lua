@@ -1,96 +1,107 @@
-local presetCleanNolly = 461221650
-local presetCleanAAL = 29898551
-local presetAcoustic = 23121345
-local presetChug = 16778240
-local presetDist = 16777406
-local changed = 0
+local presetClean = 29898551 -- blue
+local presetGlass = 16778240 -- black
+local presetAcoustic = 23121345 -- yellow
+local presetMath = 461221650 -- green
+local presetDistortion = 16777406 -- red
+local presetCrystal = 7935340 -- purple
+
+function getTracks()
+    trackL = reaper.GetTrack(0, 2)
+    trackR = reaper.GetTrack(0, 3)
+    a, state = reaper.GetTrackState(trackL)
+    if state & 8 == 8 then
+        return trackL, trackR
+    else
+        return trackR, trackL
+    end
+end
+
+function getPresetIds()
+    track, otherTrack = getTracks()
+    a, trackName = reaper.GetTrackName(track)
+    a, otherTrackName = reaper.GetTrackName(otherTrack)
+    return string.byte(trackName, 1) - 48, string.byte(otherTrackName, 1) - 48, track, otherTrack
+end
 
 function locateTrack(trackId)
-    -- colors are workarounds for encoding channel id+state, todo: use actual id in channel name
+    idL, idR, trackL, trackR = getPresetIds()
     local track = 0
     local otherTrack = 0
+    local changed = 0
 
-    local trackL = reaper.GetTrack(0, 2)
-    local trackR = reaper.GetTrack(0, 3)
-
-    local colorL = reaper.GetTrackColor(trackL)
-    local colorR = reaper.GetTrackColor(trackR)
-    if colorL == trackId then
+    if idL == trackId then
         track = trackL
         otherTrack = trackR
-    elseif colorR == trackId then
+    elseif idR == trackId then
         track = trackR
         otherTrack = trackL
     else
-        a, state = reaper.GetTrackState(trackL)
-        if state & 8 == 8 then
-            track = trackL
-            otherTrack = trackR
-        else
-            track = trackR
-            otherTrack = trackL
-        end
+        track = trackL
+        otherTrack = trackR
         changed = 1
     end
 
-    reaper.SetMediaTrackInfo_Value(track, "B_MUTE", 0)
-    reaper.SetTrackSendInfo_Value(track, -1, 0, "B_MUTE", 0)
-    reaper.SetMediaTrackInfo_Value(track, "I_RECARM", 1)
+    return track, otherTrack, changed
+end
 
-    reaper.SetMediaTrackInfo_Value(otherTrack, "B_MUTE", 1)
-    reaper.SetTrackSendInfo_Value(otherTrack, -1, 0, "B_MUTE", 1)
-    reaper.SetMediaTrackInfo_Value(otherTrack, "I_RECARM", 0)
-
-    return track
+local presetToUpdate = 0
+function updatePreset()
+    reaper.StuffMIDIMessage(0, 0xB5, 50 + presetToUpdate, 127)
 end
 
 function setProgram(newPreset, shouldRecord)
     if newPreset == 0 then
         -- nothing, so that defaulting to 0 on stopping playback does nothing
-    elseif newPreset == 1 then
-        -- my clean nolly
-        local track = locateTrack(presetCleanNolly)
-        reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "1 FX clean 1", true)
+        return
+    end
+    local track, otherTrack, changed = locateTrack(newPreset)
+    reaper.SetMediaTrackInfo_Value(track, "B_MUTE", 0)
+    reaper.SetTrackSendInfo_Value(track, -1, 0, "B_MUTE", 0)
+    reaper.SetMediaTrackInfo_Value(track, "I_RECARM", 1)
+    reaper.SetMediaTrackInfo_Value(otherTrack, "B_MUTE", 1)
+    reaper.SetTrackSendInfo_Value(otherTrack, -1, 0, "B_MUTE", 1)
+    reaper.SetMediaTrackInfo_Value(otherTrack, "I_RECARM", 0)
+    if newPreset == 1 then
+        reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "1 FX clean", true)
         reaper.TrackFX_SetEnabled(track, 1, false)
-        reaper.TrackFX_SetEnabled(track, 3, true)
-        reaper.SetTrackColor(track, presetCleanNolly)
+        reaper.TrackFX_SetEnabled(track, 2, true)
+        reaper.SetTrackColor(track, presetClean)
         reaper.SetMediaTrackInfo_Value(track, "D_PAN", -1)
     elseif newPreset == 2 then
-        -- clean aal
-        local track = locateTrack(presetCleanAAL)
-        reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "2 FX clean 2", true)
+        reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "2 FX glass", true)
         reaper.TrackFX_SetEnabled(track, 1, true)
-        reaper.TrackFX_SetEnabled(track, 3, fals
-        reaper.SetTrackColor(track, presetCleanAAL)
+        reaper.TrackFX_SetEnabled(track, 2, false)
+        reaper.SetTrackColor(track, presetGlass)
         reaper.SetMediaTrackInfo_Value(track, "D_PAN", -1)
     elseif newPreset == 3 then
-        -- acoustic
-        local track = locateTrack(presetAcoustic)
         reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "3 FX acoustic", true)
         reaper.SetTrackColor(track, presetAcoustic)
         reaper.TrackFX_SetEnabled(track, 1, false)
-        reaper.TrackFX_SetEnabled(track, 3, true)
+        reaper.TrackFX_SetEnabled(track, 2, true)
         reaper.SetMediaTrackInfo_Value(track, "D_PAN", 1)
         reaper.SetMediaTrackInfo_Value(track, "D_PAN", -1)
     elseif newPreset == 4 then
-        -- future chug machine
-        local track = locateTrack(presetChug)
-        reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "4 FX chugs", true)
+        reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "4 FX math", true)
         reaper.TrackFX_SetEnabled(track, 1, false)
-        reaper.TrackFX_SetEnabled(track, 3, true)
-        reaper.SetTrackColor(track, presetChug)
+        reaper.TrackFX_SetEnabled(track, 2, true)
+        reaper.SetTrackColor(track, presetMath)
         reaper.SetMediaTrackInfo_Value(track, "D_PAN", -1)
     elseif newPreset == 5 then
-        -- my dist
-        local track = locateTrack(presetDist)
         reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "5 FX distortion", true)
-        reaper.SetTrackColor(track, presetDist)
+        reaper.SetTrackColor(track, presetDistortion)
         reaper.TrackFX_SetEnabled(track, 1, false)
-        reaper.TrackFX_SetEnabled(track, 3, true)
+        reaper.TrackFX_SetEnabled(track, 2, true)
         reaper.SetMediaTrackInfo_Value(track, "D_PAN", 1)
+    elseif newPreset == 6 then
+        reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "6 FX crystal", true)
+        reaper.TrackFX_SetEnabled(track, 1, true)
+        reaper.TrackFX_SetEnabled(track, 2, false)
+        reaper.SetTrackColor(track, presetCrystal)
+        reaper.SetMediaTrackInfo_Value(track, "D_PAN", -1)
     end
     if changed == 1 then
-        reaper.StuffMIDIMessage(0, 0xB5, 50 + newPreset, 127)
+        presetToUpdate = newPreset
+        reaper.defer(updatePreset)
     end
 
     if shouldRecord then

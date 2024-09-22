@@ -6,30 +6,12 @@ require "set_program"
 -- reaper.StuffMIDIMessage(0, 0xC0 + string.format("%x", midiChannel), cc, ccValue)
 reaper.SetExtState("ProgramChanger", "KeyDownTime", reaper.time_precise(), true)
 
-function getPresetIds()
-    local track = 0
-    local otherTrack = 0
-    trackL = reaper.GetTrack(0, 2)
-    trackR = reaper.GetTrack(0, 3)
-    a, state = reaper.GetTrackState(trackL)
-    if state & 8 == 8 then
-        track = trackL
-        otherTrack = trackR
-    else
-        track = trackR
-        otherTrack = trackL
-    end
-    a, trackName = reaper.GetTrackName(track)
-    a, otherTrackName = reaper.GetTrackName(otherTrack)
-    return string.byte(trackName, 1) - 48, string.byte(otherTrackName, 1) - 48
-end
-
 local currentPreset, otherPreset = getPresetIds()
 -- reaper.ShowMessageBox(currentPreset, "DEBUG", 0)
 
 -- swap them
 
-local presetsNumber = 6
+local presetsNumber = 7
 local newPreset = currentPreset
 if newPreset == otherPreset then
     newPreset = (otherPreset + 1) % presetsNumber

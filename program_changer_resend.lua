@@ -7,9 +7,9 @@ function getPresetId()
     trackR = reaper.GetTrack(0, 3)
     a, state = reaper.GetTrackState(trackL)
     if state & 8 == 8 then
-        track = trackL
-    else
         track = trackR
+    else
+        track = trackL
     end
     a, trackName = reaper.GetTrackName(track)
     return string.byte(trackName, 1) - 48
